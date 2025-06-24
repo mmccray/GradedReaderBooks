@@ -1,0 +1,20 @@
+{
+  "title": "symposium",
+  "slug": "symposium",
+  "author": "Clement of Rome",
+  "language": "Greek",
+  "description": "",
+  "chapters": [
+    {
+      "slug": "chapter-1",
+      "title": {
+        "display": "symposium",
+        "gloss": ""
+      },
+      "titleImage": "",
+      "vocab": [],
+      "questions": [],
+      "content": []
+    }
+  ]
+}

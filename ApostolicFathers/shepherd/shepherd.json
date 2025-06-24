@@ -1,0 +1,20 @@
+{
+  "title": "shepherd",
+  "slug": "shepherd",
+  "author": "Clement of Rome",
+  "language": "Greek",
+  "description": "",
+  "chapters": [
+    {
+      "slug": "chapter-1",
+      "title": {
+        "display": "shepherd",
+        "gloss": ""
+      },
+      "titleImage": "",
+      "vocab": [],
+      "questions": [],
+      "content": []
+    }
+  ]
+}
