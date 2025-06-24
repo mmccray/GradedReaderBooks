@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -67,56 +68,92 @@ func parseTextToJSON(filePath string) (string, error) {
 	}
 
 	book := &Book{
-		Title:    "stoffel-epitome",
-		Slug:     "stoffel-epitome",
-		Author:   "Clement of Rome",
-		Language: "Greek",
-		Chapters: []*Chapter{},
+		Title:       "Stoffel Epitome",
+		Slug:        "stoffel-epitome",
+		Author:      "Stoffel",
+		Language:    "Greek",
+		Description: "A Greek epitome of the life of Jesus, structured in narrative chapters and verses, attributed to Stoffel.",
+		Chapters:    []*Chapter{},
 	}
 
 	lines := strings.Split(string(content), "\n")
-	chapter := &Chapter{
-		Slug:       "chapter-1",
-		Title:      Title{Display: "stoffel-epitome", Gloss: ""},
-		TitleImage: "",
-		Vocab:      []VocabItem{},
-		Questions:  []Question{},
-		Content:    []ContentItem{},
-	}
+	chapterMap := make(map[int]*Chapter)
+	chapterTitles := make(map[int]string)
 
-	verseRegex := regexp.MustCompile(`^([0-9]+\.[0-9]+)\s+(.*)$`)
+	verseRegex := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\s+(.*)$`)
+	titleRegex := regexp.MustCompile(`^([0-9]+)\.title\s+(.+)$`)
+	partMarker := regexp.MustCompile(`^0\.0\s+(.+)$`)
+	var pendingPartMarker string
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+		if partMarker.MatchString(line) {
+			matches := partMarker.FindStringSubmatch(line)
+			pendingPartMarker = matches[1]
+			continue
+		}
+		if titleRegex.MatchString(line) {
+			matches := titleRegex.FindStringSubmatch(line)
+			chapterNum, _ := strconv.Atoi(matches[1])
+			chapterTitles[chapterNum] = matches[2]
+			continue
+		}
 		matches := verseRegex.FindStringSubmatch(line)
-		if len(matches) == 3 {
-			verseID := matches[1]
-			text := matches[2]
+		if len(matches) == 4 {
+			chapterNum, _ := strconv.Atoi(matches[1])
+			paraNum, _ := strconv.Atoi(matches[2])
+			text := matches[3]
 			words := []Word{}
 			for _, w := range strings.Fields(text) {
 				words = append(words, Word{Word: w, Gloss: ""})
 			}
-			paragraph := Paragraph{
-				VerseID: 0, // We'll parse the verse number below
-				Words:   words,
-			}
-			// Try to parse the verse number as int for VerseID
-			if parts := strings.Split(verseID, "."); len(parts) == 2 {
-				if v, err := strconv.Atoi(parts[0] + parts[1]); err == nil {
-					paragraph.VerseID = v
+			// If there is a pending part marker, add it as the first paragraph (VerseID 0)
+			if chapterMap[chapterNum] == nil {
+				chapterMap[chapterNum] = &Chapter{
+					Slug:       fmt.Sprintf("chapter-%d", chapterNum),
+					Title:      Title{Display: chapterTitles[chapterNum], Gloss: ""},
+					TitleImage: "",
+					Vocab:      []VocabItem{},
+					Questions:  []Question{},
+					Content:    []ContentItem{},
 				}
+				if pendingPartMarker != "" {
+					partParagraph := Paragraph{
+						VerseID: 0,
+						Words:   []Word{{Word: pendingPartMarker, Gloss: ""}},
+					}
+					chapterMap[chapterNum].Content = append(chapterMap[chapterNum].Content, ContentItem{
+						Subtitle:  "",
+						Image:     "",
+						Paragraph: []Paragraph{partParagraph},
+					})
+					pendingPartMarker = ""
+				}
+			}
+			paragraph := Paragraph{
+				VerseID: paraNum,
+				Words:   words,
 			}
 			contentItem := ContentItem{
 				Subtitle:  "",
 				Image:     "",
 				Paragraph: []Paragraph{paragraph},
 			}
-			chapter.Content = append(chapter.Content, contentItem)
+			chapterMap[chapterNum].Content = append(chapterMap[chapterNum].Content, contentItem)
 		}
 	}
-	book.Chapters = append(book.Chapters, chapter)
+	// Collect chapters in order
+	chapterNums := []int{}
+	for num := range chapterMap {
+		chapterNums = append(chapterNums, num)
+	}
+	sort.Ints(chapterNums)
+	for _, num := range chapterNums {
+		book.Chapters = append(book.Chapters, chapterMap[num])
+	}
 
 	jsonData, err := json.MarshalIndent(book, "", "  ")
 	if err != nil {
