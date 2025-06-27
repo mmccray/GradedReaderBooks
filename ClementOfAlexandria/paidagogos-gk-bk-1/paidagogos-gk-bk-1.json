@@ -1,5 +1,5 @@
 {
-  "title": "paidagogos-gk-bk-1",
+  "title": "Paidagogos 1",
   "slug": "paidagogos-gk-bk-1",
   "author": "Clement of Alexandria",
   "language": "Greek",
@@ -8,7 +8,7 @@
     {
       "slug": "chapter-1",
       "title": {
-        "display": "paidagogos-gk-bk-1",
+        "display": "Paidagogos 1",
         "gloss": ""
       },
       "titleImage": "",
